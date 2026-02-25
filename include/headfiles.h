@@ -31,12 +31,8 @@ struct ControlBlock {
 	Deleter deleter;                 // 删除器
 
 	ControlBlock(T* p, const Deleter& del) noexcept
-		: strong_count(1), weak_count(1), ptr(p), deleter(del) {}
+		: strong_count(1), weak_count(0), ptr(p), deleter(del) {}
 
-	~ControlBlock() noexcept {
-		if (ptr) {
-			deleter(ptr);
-		}
-	}
+	~ControlBlock() noexcept = default;
 };
 
