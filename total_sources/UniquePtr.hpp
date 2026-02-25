@@ -13,7 +13,8 @@ public:
 
 	//从裸指针构造（接受自定义删除器）
 	explicit UniquePtr(T* ptr, Deleter d = Deleter()) noexcept
-		:ptr_(ptr), deleter_(std::move(d)) {};
+		:ptr_(ptr), deleter_(std::move(d)) {
+	};
 
 	//禁止拷贝构造和拷贝赋值
 	UniquePtr(const UniquePtr&) = delete;
@@ -21,7 +22,8 @@ public:
 
 	//移动构造
 	UniquePtr(UniquePtr&& other) noexcept
-		:ptr_(other.release()), deleter_(std::move(other.deleter_)) {};
+		:ptr_(other.release()), deleter_(std::move(other.deleter_)) {
+	};
 
 	//移动赋值
 	UniquePtr& operator=(UniquePtr&& other) noexcept {
