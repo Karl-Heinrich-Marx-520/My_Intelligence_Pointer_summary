@@ -65,7 +65,6 @@ public:
 		assert(ptr_ != nullptr); // 确保不解引用空指针
 		return *ptr_;
 	}
-
 	T* operator->() const {
 		assert(ptr_ != nullptr); // 确保不访问空指针
 		return ptr_;
@@ -79,6 +78,11 @@ public:
 	//布尔转换，判断是否持有对象
 	explicit operator bool() const noexcept {
 		return ptr_ != nullptr;
+	}
+	//交换函数
+	void swap(UniquePtr& other) noexcept {
+		std::swap(ptr_, other.ptr_);
+		std::swap(deleter_, other.deleter_);
 	}
 };
 
