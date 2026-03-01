@@ -4,7 +4,7 @@ template <typename T, typename Deleter = default_delete<T>>
 class WeakPtr {
 private:
 	T* ptr_;
-	ControlBlock<T, Deleter>* control_block_;  //共享的控制块指针
+	ControlBlock<T>* control_block_;  //共享的控制块指针
 
 public:
 	// 友元声明：SharedPtr 需要访问WeakPtr的control_block_成员
@@ -103,7 +103,8 @@ public:
 	//重置弱引用
 	void reset() noexcept {
 		if (control_block_) {
-			if (--(control_block_->weak_count) == 0 && control_block_->strong_count.load() == 0) {
+			if (--(control_block_->weak_count) == 0 &&
+				control_block_->strong_count.load() == 0) {
 				delete control_block_;
 			}
 			control_block_ = nullptr;
