@@ -5,7 +5,7 @@ template <typename T, typename Deleter = default_delete<T>>
 class SharedPtr {
 private:
 	T* ptr_;
-	ControlBlock<T, Deleter>* control_block_; //共享的控制块指针
+	ControlBlock<T>* control_block_; //共享的控制块指针
 
 public:
 	// 友元声明：WeakPtr 需要访问SharedPtr的control_block_成员
@@ -19,7 +19,7 @@ public:
 	explicit SharedPtr(T* ptr, const Deleter& deleter = Deleter{}) noexcept
 		: ptr_(ptr) {
 		if (ptr) {
-			control_block_ = new ControlBlock<T, Deleter>(ptr, deleter);
+			control_block_ = new ControlBlock<T>(ptr, deleter);
 		}
 		else {
 			control_block_ = nullptr;
@@ -28,7 +28,7 @@ public:
 
 	//拷贝构造
 	SharedPtr(const SharedPtr& other) noexcept
-		: ptr_(other.ptr_), control_block_(other.control_block_){
+		: ptr_(other.ptr_), control_block_(other.control_block_) {
 		if (control_block_) {
 			++(control_block_->strong_count); // 增加引用计数
 		}
@@ -67,7 +67,7 @@ public:
 	}
 
 	//析构函数
-	~SharedPtr() noexcept{
+	~SharedPtr() noexcept {
 		reset();
 	}
 
@@ -90,46 +90,52 @@ public:
 	}
 
 	//重置指针
-void reset(T* ptr = nullptr, const Deleter& deleter = Deleter{}) noexcept {
-	//1.处理旧资源：减少强引用计数，必要时销毁对象
-	if (control_block_) {
-		if (--(control_block_->strong_count) == 0) {
-			control_block_->deleter(ptr_); //调用删除器销毁对象
-			ptr_ = nullptr; //置空裸指针
+	void reset(T* ptr = nullptr, const Deleter& deleter = Deleter{}) noexcept {
+		//1.处理旧资源：减少强引用计数，必要时销毁对象
+		if (control_block_) {
+			if (--(control_block_->strong_count) == 0) {
+				control_block_->destroy_object(); //销毁托管对象
+				ptr_ = nullptr; //置空裸指针
 
-			if (control_block_->weak_count == 0) {
-				delete control_block_;
+				if (control_block_->weak_count == 0) {
+					delete control_block_;
+				}
 			}
+			control_block_ = nullptr;
 		}
-		control_block_ = nullptr;
-	}
 
-	//2.设置新资源
-	ptr_ = ptr;
-	if (ptr) {
-		control_block_ = new ControlBlock<T, Deleter>(ptr, deleter);
+		//2.设置新资源
+		ptr_ = ptr;
+		if (ptr) {
+			control_block_ = new ControlBlock<T>(ptr, deleter);
+		}
+		else {
+			control_block_ = nullptr;
+		}
 	}
-	else {
-		control_block_ = nullptr;
-	}
-}
 
 	explicit operator bool() const noexcept {
 		return ptr_ != nullptr;
 	}
+
+	//交换函数
+	void swap(SharedPtr& other) noexcept {
+		std::swap(ptr_, other.ptr_);
+		std::swap(control_block_, other.control_block_);
+	}
 };
 
-////UniquePtr 数组特化 （偏特化）
-//template <typename T, typename Deleter>
-//class SharedPtr<T[], Deleter> : public SharedPtr<T, Deleter> {
-//public:
-//	using SharedPtr<T, Deleter>::SharedPtr; // 继承构造函数
-//	//重载[]运算符
-//	T& operator[](std::size_t idx) const {
-//		return this->get()[idx];
-//	}
-//
-//	//隐藏基类的*和->运算符，数组不支持这些操作
-//	T& operator*() const = delete;
-//	T* operator->() const = delete;
-//};
+//SharedPtr 数组特化 （偏特化）
+template <typename T, typename Deleter>
+class SharedPtr<T[], Deleter> : public SharedPtr<T, Deleter> {
+public:
+	using SharedPtr<T, Deleter>::SharedPtr; // 继承构造函数
+	//重载[]运算符
+	T& operator[](std::size_t idx) const {
+		return this->get()[idx];
+	}
+
+	//隐藏基类的*和->运算符，数组不支持这些操作
+	T& operator*() const = delete;
+	T* operator->() const = delete;
+};
