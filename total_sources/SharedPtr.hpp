@@ -95,7 +95,7 @@ public:
 		if (control_block_) {
 			if (--(control_block_->strong_count) == 0) {
 				control_block_->destroy_object(); //销毁托管对象
-				ptr_ = nullptr; //置空裸指针
+				//ptr_ = nullptr; //control_block_中destroy_object已置空裸指针，故此无需再置空
 
 				if (control_block_->weak_count == 0) {
 					delete control_block_;
